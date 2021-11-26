@@ -37,7 +37,7 @@ def average_direction_vector(lines):
 # Dot product : u.v = ||u|| * ||v|| * cos 0
 # 0 = arccos(u.v / ||u|| * ||v||) 
   
-def omega(x,y) : # x,y of the vector
+def get_omega(x,y) : # x,y of the vector
     vector = np.array([x,y])
     unit = np.array([1,0])
     dot = np.dot(vector,unit)
@@ -65,6 +65,21 @@ def undo_rotation(x_prime, y_prime, omega) :
 
     return(x,y)
 
+def rotate_back(line, omega) :
+
+    L = []
+    for i in range(len(line.coords)) :
+        x_prime = line.coords[i][0]
+        y_prime = line.coords[i][1]
+
+        x,y = undo_rotation(x_prime, y_prime, omega)
+        point = Point(x,y)
+        L.append(point)
+    rpz_trajectory = LineString(L)
+
+    return(rpz_trajectory)
+
+
 ###########################################################################################
 ###########################################################################################
 #A MODIFIER POUR DIM > 2
@@ -88,13 +103,24 @@ def rotate(lines, omega) :
 def sorting(lines) :
     L = []
     i = 0
+    global_minima = 0
+
+    for line in lines.geoms : 
+        x,y = line.xy
+        local_minima = min(x)
+        if local_minima < global_minima :
+            global_minima = local_minima
+    
     for line in lines.geoms : 
         if i == 0 :
             L.append(line)
         else :
             x,y = line.xy
             y = i
-            while x[0] < L[y-1].xy[0][0] :
+            while (x[0] + abs(global_minima)) < (L[y-1].xy[0][0] + abs(global_minima)) :
+                if y == 0 :
+                    L.insert(y, line)
+                    break
                 y -= 1
             L.insert(y, line)
         i += 1
@@ -150,17 +176,30 @@ def sweep(lines, minLines, smoothing) :
         if mean_y == None :
             continue
         else : 
-            if i > 0 and (x_sweep[i] - x_sweep[i-1] < smoothing) :
+            if i > 0 and (abs(x_sweep[i-1]) - abs(x_sweep[i]) < smoothing) :
                 continue
             #on veut une line string
-            P = Point(x_sweep[i], mean_y) #coordonees 0
+            P = Point(x_sweep[i], mean_y) #coordonees 0mega
             L.append(P)
-    rpz_trajectory = LineString(L)
-    return(rpz_trajectory, x_sweep)
+    if len(L) <= 1 : 
+        return(None)
+    else :
+        rpz_trajectory = LineString(L)
+        return(rpz_trajectory)
+
+
 
 def plot_trajectory(line, color) :
     x,y = line.xy
     plt.plot(x,y, color=color, zorder = 3)
+
+def plot_trajectories(lines, color) :
+    for line in lines.geoms :
+        x,y = line.xy
+        plt.plot(x,y, color = color, zorder = 3)
+
+
+
 
 ###########################################################################################
 ###########################################################################################
@@ -186,64 +225,62 @@ def to_multi(line) :
     
 
 
-##Vectors definition
-u1 = LineString([(1,1), (7,2)])
-u2 = LineString([(2,2), (5,3)])
-u3 = LineString([(1,3), (5,5)])
-u4 = LineString([(5,4), (10,5)])
-u5 = LineString([(8,3), (12,5)])
-u6 = LineString([(8,2), (11,3)])
-u7 = LineString([(8,2), (8,3), (10,5), (5,5), (11,3)])
-lines = MultiLineString([u1,u2,u3,u4,u5,u6])
+# ##Vectors definition
+# u1 = LineString([(1,1), (7,2)])
+# u2 = LineString([(2,2), (5,3)])
+# u3 = LineString([(1,3), (5,5)])
+# u4 = LineString([(5,4), (10,5)])
+# u5 = LineString([(8,3), (12,5)])
+# u6 = LineString([(8,2), (11,3)])
+# u7 = LineString([(8,2), (8,3), (10,5), (5,5), (11,3)])
+# lines = MultiLineString([u1,u2,u3,u4,u5,u6])
 
 
-#Axes definition ect
-fig = plt.figure()
-ax1 = plt.subplot(1,2,1)
+# #Axes definition ect
+# fig = plt.figure()
+# ax1 = plt.subplot(1,2,1)
 
-plot_vector(lines, 'black')
-x,y = average_direction_vector(lines)
-plt.quiver(4, 2, x, y, units ='xy', color='pink', scale =1, zorder = 2)
-ax1.set_aspect('equal')
-ax1.set_xticks(np.arange(14))
-ax1.set_yticks(np.arange(9))
-plt.grid()
-plt.xlabel('Cluster and its average direction vector')
+# plot_vector(lines, 'black')
+# x,y = average_direction_vector(lines)
+# plt.quiver(4, 2, x, y, units ='xy', color='pink', scale =1, zorder = 2)
+# ax1.set_aspect('equal')
+# ax1.set_xticks(np.arange(14))
+# ax1.set_yticks(np.arange(9))
+# plt.grid()
+# plt.xlabel('Cluster and its average direction vector')
 
-omega = omega(x,y)
-print("L'angle omega a pour valeur : " + str(omega) + ' radians')
-lines_prime = rotate(lines, omega)
+# omega = get_omega(x,y)
+# print("L'angle omega a pour valeur : " + str(omega) + ' radians')
+# lines_prime = rotate(lines, omega)
 
-ax2 = plt.subplot(1,2,2)
+# ax2 = plt.subplot(1,2,2)
 
-plot_vector(lines_prime, 'green')
-x,y = average_direction_vector(lines_prime)
-plt.quiver(0, 0, x, y, units ='xy', color='orange', scale =1, zorder = 2)
+# plot_vector(lines_prime, 'green')
+# x,y = average_direction_vector(lines_prime)
+# plt.quiver(0, 0, x, y, units ='xy', color='orange', scale =1, zorder = 2)
 
+# rpz_trajectory= sweep(lines_prime, 3, 0.5)
+# plot_trajectory(rpz_trajectory, 'red')
 
+# #ax2.vlines(x_sweep, -1,8, color='black') #sweep
+# plt.grid()
+# ax2.set_aspect('equal')
+# ax2.set_xticks(np.arange(14))
+# ax2.set_yticks(np.arange(9))
+# plt.xlabel('Same cluster rotated by Omega')
 
-rpz_trajectory, x_sweep = sweep(lines_prime, 3, 0.5)
-plot_trajectory(rpz_trajectory, 'red')
-
-#ax2.vlines(x_sweep, -3,8, color='black') #sweep
-plt.grid()
-ax2.set_aspect('equal')
-ax2.set_xticks(np.arange(14))
-ax2.set_yticks(np.arange(9))
-plt.xlabel('Same cluster rotated by Omega')
-
-plt.show()
+# plt.show()
 
 
 
-f, ax = plt.subplots()
-u7_bis = to_multi(u7)
-plot_vector(u7_bis, 'blue')
+# f, ax = plt.subplots()
+# u7_bis = to_multi(u7)
+# plot_vector(u7_bis, 'blue')
 
-ax.set_aspect('equal')
-ax.set_xticks(np.arange(14))
-ax.set_yticks(np.arange(9))
+# ax.set_aspect('equal')
+# ax.set_xticks(np.arange(14))
+# ax.set_yticks(np.arange(9))
 
-plt.grid()
+# plt.grid()
 
-plt.show()
+# plt.show()

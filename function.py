@@ -4,7 +4,8 @@ from shapely.geometry import Point, multilinestring
 from shapely.geometry import LineString
 from shapely.geometry import MultiLineString
 import matplotlib.pyplot as plt
-
+from tqdm import tqdm
+import sys
 """
 class Segment:
     def __init__(self, startPoint, endPoint, cluster, mother) :
@@ -16,6 +17,8 @@ class Segment:
 s1 = Segment([1,1],None, None, None)
 #print(s1.startPoint)
 """
+
+# Prend une ligne et la decompose en plusieurs segements
 def to_multi(line) : 
     L = []
     i = 0
@@ -78,7 +81,10 @@ def perpendicular_distance(line_i, line_j) :
     l_perp_1 = sj.distance(ps)
     l_perp_2 = ej.distance(pe)
 
-    r = ((l_perp_1 ** 2) + (l_perp_2 ** 2)) / (l_perp_1 + l_perp_2)
+    try : 
+        r = ((l_perp_1 ** 2) + (l_perp_2 ** 2)) / (l_perp_1 + l_perp_2)
+    except (ZeroDivisionError) : 
+        r = 0 
     return r
 
 # Parallel Distance
@@ -146,7 +152,9 @@ def LDH_Partition(line) :
 
         i += 1
         y += 1
-
+    if total_O_distance == 0 :
+        r = log2(total_T_distance)
+        return r
     r = log2(total_T_distance) + log2(total_O_distance)
     return r
 
@@ -194,7 +202,7 @@ def epsilon_neighborhood(line, lines, epsilon) : #Return a list of indexes of ne
         if lines.geoms[i] == line :
             i += 1
             continue
-        D = line.distance(lines.geoms[i])
+        D = final_distance(line, lines.geoms[i]) 
         if D <= epsilon : 
             L.append(i)
         i += 1
@@ -208,11 +216,11 @@ def expandCluster(lines, queue, epsilon, minLns, clusterID, Unclassified, Noise,
         Ne = epsilon_neighborhood(M, lines, epsilon)
         if len(Ne) >= minLns :
             for i in Ne : 
-                if lines[i] in Unclassified :
-                    queue.append(lines[i])
-                if (lines[i] in Unclassified) or (lines[i] in Noise) :
-                    clusters[clusterID].append(lines[i])
-                    Unclassified.remove(lines[i])
+                if lines.geoms[i] in Unclassified :
+                    queue.append(lines.geoms[i])
+                if (lines.geoms[i] in Unclassified) or (lines.geoms[i] in Noise) :
+                    clusters[clusterID].append(lines.geoms[i])
+                    Unclassified.remove(lines.geoms[i])
         queue.remove(M)
 
 #grouping
@@ -220,18 +228,18 @@ def grouping(lines, epsilon, minLns, clusters, Noise, Unclassified) :
     clusterID = 0
     queue = []
     #barre de progression len(lines.geoms)
-    for i in range(len(lines)) : 
-        if lines[i] in Unclassified : 
-            Ne = epsilon_neighborhood(lines[i], lines, epsilon)
+    for i in tqdm(range(len(lines.geoms)), file = sys.stdout) : 
+        if lines.geoms[i] in Unclassified : 
+            Ne = epsilon_neighborhood(lines.geoms[i], lines, epsilon)
             if (len(Ne) + 1) >= minLns : 
-                clusters[clusterID].append(lines[i])
+                clusters[clusterID].append(lines.geoms[i])
                 for y in Ne : 
-                    clusters[clusterID].append(lines[y])
-                    queue.append(lines[y])
+                    clusters[clusterID].append(lines.geoms[y])
+                    queue.append(lines.geoms[y])
                 expandCluster(lines, queue, epsilon, minLns, clusterID, Unclassified, Noise, clusters)
                 clusterID += 1
             else :
-                Noise.append(lines[i])
+                Noise.append(lines.geoms[i])
 
 #last step
 def cardinality(clusters, minClusters, lines, Removed) :
@@ -279,23 +287,23 @@ D = wT * T + wP * P + wO * O
 print('Final Distance : ' + str(D))
 '''
 #############
-traj = LineString([(1,1), (1,2), (1.2,3.1),(1.3,3.2), (2.9,2.9), (3,3.3), (3.1,4), (3.4,5)])
-C = Partition(traj)
-C = to_multi(C)
+# traj = LineString([(1,1), (1,2), (1.2,3.1),(1.3,3.2), (2.9,2.9), (3,3.3), (3.1,4), (3.4,5)])
+# C = Partition(traj)
+# C = to_multi(C)
 
-f,ax = plt.subplots()
-plot_vector(C,'black')
+# f,ax = plt.subplots()
+# plot_vector(C,'black')
 
-x,y = traj.xy
-plt.plot(x,y, color='green')
+# x,y = traj.xy
+# plt.plot(x,y, color='green')
 
-ax.set_aspect('equal')
-ax.set_xticks(np.arange(5))
-ax.set_yticks(np.arange(7))
-plt.grid()
+# ax.set_aspect('equal')
+# ax.set_xticks(np.arange(5))
+# ax.set_yticks(np.arange(7))
+# plt.grid()
 
 
-plt.show()
+# plt.show()
 
 '''
 line = LineString([(2,3), (3,3)])
