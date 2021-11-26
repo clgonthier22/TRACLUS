@@ -6,17 +6,7 @@ from shapely.geometry import MultiLineString
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import sys
-"""
-class Segment:
-    def __init__(self, startPoint, endPoint, cluster, mother) :
-        self.startPoint = startPoint
-        self.endPoint = endPoint
-        self.cluster = cluster
-        self.mother = mother
 
-s1 = Segment([1,1],None, None, None)
-#print(s1.startPoint)
-"""
 
 # Prend une ligne et la decompose en plusieurs segements
 def to_multi(line) : 
