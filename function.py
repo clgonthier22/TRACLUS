@@ -106,7 +106,7 @@ def final_distance(line_i, line_j) :
     P = parallel_distance(line_i, line_j)
     O = angle_distance(line_i, line_j)
 
-    # Here : Neural network to optimize these weigths
+    ####### Optimizing these weights through ML/DL ? ########
     wT, wP, wO = 1,1,1
 
     D = wT * T + wP * P + wO * O
